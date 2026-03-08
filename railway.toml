@@ -1,0 +1,13 @@
+# Railway deployment configuration
+# This file tells Railway how to build and run your application
+
+builder = "nixpacks"
+
+[build]
+cmd = "npm install"
+
+[start]
+cmd = "npm run build && npm run start:supabase"
+
+[deploy]
+startCommand = "npm run start:supabase"
