@@ -51,6 +51,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { User, Job, IncomeRecord, Target } from './types';
 
+const API_BASE = ((import.meta as any).env?.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
+const apiFetch = (path: string, init?: RequestInit) => {
+  return fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
+    ...init,
+  });
+};
+
 // --- Utility Functions ---
 
 // Generate consistent color from job name
@@ -158,9 +167,9 @@ export default function App() {
   const fetchData = async (userId: number) => {
     try {
       const [jobsRes, incomeRes, targetsRes] = await Promise.all([
-        fetch('/api/jobs'),
-        fetch('/api/income'),
-        fetch('/api/targets')
+        apiFetch('/api/jobs'),
+        apiFetch('/api/income'),
+        apiFetch('/api/targets')
       ]);
       setJobs(await jobsRes.json());
       setIncome(await incomeRes.json());
@@ -177,7 +186,7 @@ export default function App() {
     setAuthError('');
     try {
       const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -389,7 +398,7 @@ export default function App() {
                   variant="ghost" 
                   className="w-full justify-start text-sm" 
                   onClick={async () => {
-                    await fetch('/api/logout', { method: 'POST' });
+                    await apiFetch('/api/logout', { method: 'POST' });
                     setUser(null);
                   }}
                 >
@@ -703,7 +712,7 @@ function JobsView({ user, jobs, setJobs, income, setIncome }: { user: User, jobs
   const handleAddJob = async (e: React.FormEvent) => {
     e.preventDefault();
     const jobColor = newJob.color || generateColorFromName(newJob.name);
-    const res = await fetch('/api/jobs', {
+    const res = await apiFetch('/api/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -725,7 +734,7 @@ function JobsView({ user, jobs, setJobs, income, setIncome }: { user: User, jobs
     e.preventDefault();
     if (!editingId) return;
     const jobColor = newJob.color || generateColorFromName(newJob.name);
-    const res = await fetch(`/api/jobs/${editingId}`, {
+    const res = await apiFetch(`/api/jobs/${editingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -756,7 +765,7 @@ function JobsView({ user, jobs, setJobs, income, setIncome }: { user: User, jobs
   const deleteJob = async (id: number) => {
     if (!confirm('Are you sure you want to delete this job profile? All income records for this job will also be deleted.')) return;
     try {
-      const res = await fetch(`/api/jobs/${id}`, {
+      const res = await apiFetch(`/api/jobs/${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -895,7 +904,7 @@ function IncomeView({ user, jobs, income, setIncome }: { user: User, jobs: Job[]
     if (existing) {
       // If already exists, we might want to delete it or just leave it. 
       // For this UI, clicking again deletes it (unchecking)
-      const res = await fetch(`/api/income/${existing.id}`, {
+      const res = await apiFetch(`/api/income/${existing.id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -903,7 +912,7 @@ function IncomeView({ user, jobs, income, setIncome }: { user: User, jobs: Job[]
       }
     } else {
       const amount = job.hourly_rate * job.hours_per_day;
-      const res = await fetch('/api/income', {
+      const res = await apiFetch('/api/income', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ job_id: selectedJobId, date: dateStr, amount })
@@ -1100,7 +1109,7 @@ function TargetsView({ user, targets, setTargets, income, jobs }: { user: User, 
 
   const handleSaveTarget = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/targets', {
+    const res = await apiFetch('/api/targets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ month: currentMonth, amount: parseFloat(amount) })
@@ -1322,7 +1331,7 @@ function AdminView({ user }: { user: User }) {
   const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/admin/users')
+    apiFetch('/api/admin/users')
       .then(res => res.json())
       .then(data => {
         setUsers(data);
