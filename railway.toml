@@ -4,10 +4,10 @@
 builder = "nixpacks"
 
 [build]
-cmd = "npm install"
+cmd = "npm ci && npm run build"
 
 [start]
-cmd = "npm run build && npm run start:supabase"
+cmd = "npm run start:supabase"
 
 [deploy]
 startCommand = "npm run start:supabase"
