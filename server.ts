@@ -23,6 +23,19 @@ const hashPassword = (password: string) => crypto.createHash('sha256').update(pa
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
+  let isSupabaseEnabled = false;
+
+  // Health endpoint should be available even if DB init fails,
+  // so Railway can still get a response from the service.
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({
+      status: isSupabaseEnabled ? 'healthy' : 'degraded',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      railway: !!process.env.RAILWAY_PUBLIC_DOMAIN,
+      supabase: isSupabaseEnabled,
+    });
+  });
 
   // ==================== SECURITY MIDDLEWARE ====================
   
@@ -61,15 +74,16 @@ async function startServer() {
   });
 
   // Initialize Supabase
-  const isSupabaseEnabled = await initializeSupabaseDatabase();
+  isSupabaseEnabled = await initializeSupabaseDatabase();
   
   if (!isSupabaseEnabled) {
-    console.error("❌ Supabase not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env");
-    process.exit(1);
+    console.error("⚠️ Supabase not configured or not reachable. API routes will return 503 until fixed.");
   }
 
-  // Schedule daily backups
-  scheduleBackup(24);
+  // Schedule daily backups only when DB is ready
+  if (isSupabaseEnabled) {
+    scheduleBackup(24);
+  }
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -120,16 +134,16 @@ async function startServer() {
 
   seedAdminUser().catch(err => console.error('Seed error:', err));
 
-  // ==================== HEALTH & BACKUP ROUTES ====================
-  
-  app.get('/api/health', (req, res) => {
-    res.json({ 
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      railway: !!process.env.RAILWAY_PUBLIC_DOMAIN
-    });
+  // Block DB-dependent API routes when Supabase is unavailable.
+  app.use('/api', (req, res, next) => {
+    if (req.path === '/health') return next();
+    if (!isSupabaseEnabled) {
+      return res.status(503).json({ error: 'Service temporarily unavailable: database not ready' });
+    }
+    next();
   });
+
+  // ==================== BACKUP ROUTES ====================
 
   // Backup endpoints (admin only)
   app.post('/api/admin/backup', requireAuth, async (req, res) => {
@@ -548,6 +562,11 @@ async function startServer() {
     }
   });
 
+  // API fallback (must be before Vite/static handlers)
+  app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'API route not found' });
+  });
+
   // ==================== VITE & STATIC ROUTES ====================
 
   if (process.env.NODE_ENV !== "production") {
@@ -558,7 +577,8 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
+    // SPA fallback (exclude /api)
+    app.get(/^\/(?!api).*/, (req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
