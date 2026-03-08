@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-03-08T18:17:40.791Z",
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "role": "admin",
+      "created_at": "2026-03-08T17:04:48.021335"
+    },
+    {
+      "id": 2,
+      "username": "hello",
+      "role": "user",
+      "created_at": "2026-03-08T17:05:39.584885"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 2,
+      "user_id": 2,
+      "name": "A",
+      "hourly_rate": 200,
+      "hours_per_day": 8,
+      "color": "#EAB308",
+      "created_at": "2026-03-08T17:06:10.801305"
+    },
+    {
+      "id": 3,
+      "user_id": 2,
+      "name": "B",
+      "hourly_rate": 210,
+      "hours_per_day": 8,
+      "color": "#8B5CF6",
+      "created_at": "2026-03-08T17:06:20.470028"
+    }
+  ],
+  "income": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "job_id": 2,
+      "date": "2026-03-08",
+      "amount": 1600,
+      "created_at": "2026-03-08T17:06:23.85852"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "job_id": 2,
+      "date": "2026-03-07",
+      "amount": 1600,
+      "created_at": "2026-03-08T17:06:25.201602"
+    },
+    {
+      "id": 3,
+      "user_id": 2,
+      "job_id": 3,
+      "date": "2026-03-06",
+      "amount": 1680,
+      "created_at": "2026-03-08T17:06:27.417145"
+    },
+    {
+      "id": 4,
+      "user_id": 2,
+      "job_id": 3,
+      "date": "2026-03-05",
+      "amount": 1680,
+      "created_at": "2026-03-08T17:06:28.033745"
+    },
+    {
+      "id": 5,
+      "user_id": 2,
+      "job_id": 3,
+      "date": "2026-03-04",
+      "amount": 1680,
+      "created_at": "2026-03-08T17:06:28.35228"
+    }
+  ],
+  "targets": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "month": "2026-03",
+      "amount": 20000,
+      "created_at": "2026-03-08T17:06:36.992043"
+    }
+  ],
+  "version": "1.0"
+}

@@ -140,6 +140,21 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
+  const parseResponseBody = async (res: Response) => {
+    const contentType = res.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      try {
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    const text = await res.text();
+    return text ? { error: text } : null;
+  };
+
   const fetchData = async (userId: number) => {
     try {
       const [jobsRes, incomeRes, targetsRes] = await Promise.all([
@@ -160,25 +175,36 @@ export default function App() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setUser(data);
-      setPassword('');
-      setAuthError('');
-      fetchData(data.id);
-    } else {
-      if (authMode === 'login') {
-        setAuthError('Invalid username or password. Please re-enter your password and try again.');
+    try {
+      const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await parseResponseBody(res);
+
+      if (res.ok && data) {
+        setUser(data);
         setPassword('');
+        setAuthError('');
+        fetchData(data.id);
       } else {
-        setAuthError(data.error || 'Registration failed. Please try again.');
+        if (res.status === 405) {
+          setAuthError('Login API is not available in production right now (405). Please redeploy backend service and try again.');
+          return;
+        }
+
+        if (authMode === 'login') {
+          setAuthError((data as any)?.error || 'Invalid username or password. Please re-enter your password and try again.');
+          setPassword('');
+        } else {
+          setAuthError((data as any)?.error || 'Registration failed. Please try again.');
+        }
       }
+    } catch (error) {
+      console.error('Auth request failed:', error);
+      setAuthError('Unable to connect to server. Please try again in a moment.');
     }
   };
 
